@@ -61,7 +61,7 @@ CONSTRAINTS = {    # name used in the output files -> shape constraints
 }
 ALPHA_CONSTRAINTS = []
 COVARIANCE_ESTIMATION = "FPCA"
-YLIM = (-0.75, 1.5)
+YLIM = (-0.25, 2.5)
 YLIM_BETA0 = (-2, 2)
 
 # Outputs of FOSR_basis, in order
