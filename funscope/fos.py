@@ -1,0 +1,199 @@
+"""Function-on-scalar (FOS) regression with (shape-constrained) P-splines.
+
+Model: Y_i(t) = beta_0(t) + X_i beta(t) + eps_i(t), with correlated errors.
+
+Three estimates are computed for each sample:
+    * ``unc``  : unconstrained, ignoring the error correlation;
+    * ``unc2`` : unconstrained, generalized least squares with the error
+      covariance estimated by FPCA (FunSCOPE-U in the paper);
+    * ``cons`` : shape-constrained, generalized least squares with the same
+      covariance and smoothing parameter as ``unc2`` (FunSCOPE in the paper).
+"""
+
+import time
+
+import numpy as np
+
+from .building_blocks import (
+    bspline_basis,
+    fine_grid,
+    fit_design,
+    gram_matrix,
+    imse_beta,
+    presmooth,
+    silenced,
+    sqrtm_eig,
+)
+from .covariance import fpca_covariance
+from .utils import imse_simpson
+
+
+def FOSR_basis(X, t, Y, Beta_real=None, degree=3, knots=14, g=2000, centered=True, int_constraint=None, alpha_constraint=None, covariance_estimation="FPCA"):
+    """
+    Fit the FOS model for one sample.
+
+    Parameters
+    ----------
+    X : np.ndarray (N x 1)
+        Scalar covariate.
+    t : np.ndarray (m,)
+        Observation grid.
+    Y : np.ndarray (N x m)
+        Functional responses observed on `t`.
+    Beta_real : array-like (m x 1) or None
+        True beta(t) on `t`, only used to compute the IMSE of beta. Use None
+        for real data (beta unknown); the IMSE is then returned as NaN.
+    degree, knots : int
+        Degree of the B-splines and number of equispaced intervals.
+    g : int
+        Number of intervals of the fine grid used for the integrals (even).
+    centered : bool
+        Whether to center Y (column-wise) and X.
+    int_constraint : dict or None
+        Shape constraints, e.g. {"X": {0: {"+": 0}, 2: {"+": 0}}} for
+        beta(t) >= 0 and beta''(t) >= 0.
+    alpha_constraint : list or None
+        None (or []) for a free intercept, [value] to fix it.
+    covariance_estimation : "FPCA" or None
+        "FPCA": GLS with the error covariance estimated by FPCA (paper).
+        None: the error correlation is ignored (``unc2`` equals ``unc``).
+
+    Returns
+    -------
+    Tuple with, in this order: the fitted models (unc, unc2, cons), the
+    coefficient vectors, Beta_est (on t) for each estimate, the constrained
+    Beta_est on the fine grid, y_est, MSE, total time, Phi, knots, fine grid,
+    mean of Y, IMSE of beta and IMSE of Y for each estimate, and
+    `identity_used` (1 if the covariance estimation failed).
+    """
+    if covariance_estimation not in ("FPCA", None):
+        raise ValueError("`covariance_estimation` must be 'FPCA' or None.")
+
+    N = np.shape(X)[0]
+    m = len(t)
+
+    if centered:
+        mediaY = Y.mean(axis=0, keepdims=True)
+        Y = Y - mediaY
+        X = X - np.mean(X)
+    else:
+        mediaY = np.zeros((1, m))
+
+    with silenced():
+        start_time = time.time()
+
+        # -----------------------------------------------------------------
+        # 1. B-spline basis (same for Y(t) and beta(t))
+        # -----------------------------------------------------------------
+        Base = bspline_basis(t, degree, knots)
+        Phi = Base.matrixB
+        knots_print = Base.knots
+
+        # -----------------------------------------------------------------
+        # 2. Pre-smoothing of the responses: Y_i(t) = C_i Phi(t)
+        # -----------------------------------------------------------------
+        C = presmooth(Y, t, degree, knots, np.shape(Phi)[1])
+
+        # -----------------------------------------------------------------
+        # 3. Psi = int Phi(t)^T Phi(t) dt and its square root
+        # -----------------------------------------------------------------
+        tt = fine_grid(t, g)
+        Phi_inner = bspline_basis(tt, degree, knots).matrixB
+        Psi = gram_matrix(Phi_inner, t, g)
+        Psiroot = sqrtm_eig(Psi)
+
+        # -----------------------------------------------------------------
+        # 4. Transformed response and design: ystar = vec(Psi^1/2 C^T)
+        # -----------------------------------------------------------------
+        ystar_unc_matrix = Psiroot @ C.T
+        ystar_unc = ystar_unc_matrix.flatten(order="F").tolist()
+        Z1 = np.kron(X, Psiroot)
+        Z2 = np.ones((np.shape(Z1)[0], 1))
+        Zstar_unc = np.hstack((Z1, Z2))
+
+        # -----------------------------------------------------------------
+        # 5. Unconstrained fit ignoring the error correlation (unc)
+        # -----------------------------------------------------------------
+        FOSR_unc = fit_design(Zstar_unc, ystar_unc, ystar_unc, degree, knots, alpha_constraint=alpha_constraint)
+        Delta_unc = FOSR_unc.sol
+        lambda_optimo = FOSR_unc.best_sp
+
+        Beta_est_unc = Phi @ Delta_unc[:-1]
+        y_est_unc = Zstar_unc @ Delta_unc
+        MSE_unc = np.mean((ystar_unc - y_est_unc) ** 2)
+
+        # -----------------------------------------------------------------
+        # 6. Error covariance (FPCA) and unconstrained GLS fit (unc2)
+        # -----------------------------------------------------------------
+        FOSR_unc2 = []
+        Delta_unc2 = []
+        identity_used = 0
+        if covariance_estimation == "FPCA":
+            U_hat = np.reshape(ystar_unc - y_est_unc, (N, knots + degree), order="F")
+            knots_evals = knots_print[2:-2]
+            _, sigmat, sigmat_invsqrt, identity_used = fpca_covariance(U_hat, knots_evals, knots + degree, N)
+
+            ystar_cons = (sigmat_invsqrt @ ystar_unc_matrix).flatten(order="F")
+            Z1_cons = np.kron(X, sigmat_invsqrt @ Psiroot)
+            Z2_cons = np.tile(sigmat_invsqrt @ np.ones((knots + degree, 1)), (N, 1))
+            Zstar_cons = np.hstack((Z1_cons, Z2_cons))
+
+            FOSR_unc2 = fit_design(Zstar_cons, ystar_cons, ystar_cons, degree, knots, alpha_constraint=alpha_constraint)
+            lambda_optimo = FOSR_unc2.best_sp
+            Delta_unc2 = FOSR_unc2.sol
+            Beta_est_unc2 = Phi @ Delta_unc2[:-1]
+            y_est_unc2 = Zstar_unc @ Delta_unc2
+        else:
+            Zstar_cons = Zstar_unc.copy()
+            ystar_cons = ystar_unc.copy()
+            Beta_est_unc2 = Beta_est_unc
+            y_est_unc2 = y_est_unc
+
+        MSE_unc2 = np.mean((ystar_unc - y_est_unc2) ** 2)
+
+        # -----------------------------------------------------------------
+        # 7. Shape-constrained GLS fit (cons), same smoothing parameter as unc2
+        # -----------------------------------------------------------------
+        FOSR_cons = fit_design(
+            Zstar_cons, ystar_cons, ystar_cons, degree, knots, int_constraint, alpha_constraint,
+            retry_scaled=True,
+            sp_method="grid_search",
+            sp_args={"grid": (lambda_optimo,)},
+        )
+        Delta_cons = FOSR_cons.sol
+        Beta_est_cons = Phi @ Delta_cons[:-1]
+        Beta_est_cons_Phi_inner = Phi_inner @ Delta_cons[:-1]
+        y_est_cons = Zstar_unc @ Delta_cons
+        MSE_cons = np.mean((ystar_unc - y_est_cons) ** 2)
+
+        total_time = time.time() - start_time
+
+        # -----------------------------------------------------------------
+        # 8. Errors: IMSE of beta(t) and IMSE of Y(t)
+        # -----------------------------------------------------------------
+        imse_approx_unc = imse_beta(t, Beta_real, Beta_est_unc)
+        imse_approx_unc2 = imse_beta(t, Beta_real, Beta_est_unc2)
+        imse_approx_cons = imse_beta(t, Beta_real, Beta_est_cons)
+
+        t_plot = knots_print[1:(knots + degree + 1)]
+        ystar_unc_resh = np.reshape(ystar_unc, (N, knots + degree))
+        imse_mse_unc = _imse_rows(t_plot, ystar_unc_resh, np.reshape(y_est_unc, (N, knots + degree)))
+        imse_mse_unc2 = _imse_rows(t_plot, ystar_unc_resh, np.reshape(y_est_unc2, (N, knots + degree)))
+        imse_mse_cons = _imse_rows(t_plot, ystar_unc_resh, np.reshape(y_est_cons, (N, knots + degree)))
+
+    return (
+        FOSR_unc, FOSR_unc2, FOSR_cons,
+        Delta_unc, Delta_unc2, Delta_cons,
+        Beta_est_unc, Beta_est_unc2, Beta_est_cons, Beta_est_cons_Phi_inner,
+        y_est_unc, y_est_unc2, y_est_cons,
+        MSE_unc, MSE_unc2, MSE_cons,
+        total_time, Phi, knots_print, tt, mediaY,
+        imse_approx_unc, imse_approx_unc2, imse_approx_cons,
+        imse_mse_unc, imse_mse_unc2, imse_mse_cons,
+        identity_used,
+    )
+
+
+def _imse_rows(t, Y, Y_est):
+    """Average over rows of the IMSE between Y and Y_est."""
+    return np.mean([imse_simpson(t, Y[i, :], Y_est[i, :]) for i in range(np.shape(Y)[0])])

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "funscope"
+version = "0.1.0"
+description = "Shape-constrained functional regression with P-splines and conic optimization"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "María Durbán" },
+    { name = "Vanesa Guerrero" },
+    { name = "Cristina Molero-Río" },
+]
+requires-python = ">=3.12"
+dependencies = [
+    "cpsplines @ git+https://github.com/ManuelNavarroGarcia/cpsplines@a2cd02c0586edc3648e8cfdd106ce0938068a3d9",
+    "mosek>=11.0,<11.1",
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "statsmodels",
+    "joblib",
+    "tensorly",
+]
+
+[project.urls]
+Repository = "https://github.com/mmolerous/FunSCOPE"
+
+[tool.setuptools]
+packages = ["funscope"]
+
+[tool.setuptools.package-data]
+funscope = ["R/*.R"]
