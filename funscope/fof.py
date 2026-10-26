@@ -55,8 +55,7 @@ def FOFR_basis(X, t, Y, Beta_real=None, degree=3, knots=14, g=2000, centered=Tru
 
     Returns
     -------
-    Same tuple as `FOSR_basis`, without the mean of Y. For FOF the "IMSE of Y"
-    entries are the MSE of the transformed response.
+    Same tuple as `FOSR_basis`, without the mean of Y.
     """
     if covariance_estimation not in ("FPCA", None):
         raise ValueError("`covariance_estimation` must be 'FPCA' or None.")
@@ -167,14 +166,17 @@ def FOFR_basis(X, t, Y, Beta_real=None, degree=3, knots=14, g=2000, centered=Tru
         total_time = time.time() - start_time
 
         # -----------------------------------------------------------------
-        # 8. Errors: IMSE of beta(t); for Y the MSE of the transformed response
+        # 8. Errors: IMSE of beta(t) and IMSE of Y(t) w.r.t. the pre-smoothed
+        #    curves, (1/N) sum (1/T) int (Y_i - fitted_i)^2. The squared norm of
+        #    the transformed residual is that integral, so this is MSE_* * p**2 / T
         # -----------------------------------------------------------------
         imse_approx_unc = imse_beta(t, Beta_real, Beta_est_unc)
         imse_approx_unc2 = imse_beta(t, Beta_real, Beta_est_unc2)
         imse_approx_cons = imse_beta(t, Beta_real, Beta_est_cons)
-        imse_mse_unc = MSE_unc
-        imse_mse_unc2 = MSE_unc2
-        imse_mse_cons = MSE_cons
+        T = max(t) - min(t)
+        imse_mse_unc = np.sum((ystar_unc - y_est_unc) ** 2) / (N * T)
+        imse_mse_unc2 = np.sum((ystar_unc - y_est_unc2) ** 2) / (N * T)
+        imse_mse_cons = np.sum((ystar_unc - y_est_cons) ** 2) / (N * T)
 
     return (
         FOFR_unc, FOFR_unc2, FOFR_cons,

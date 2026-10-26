@@ -11,7 +11,10 @@ In the output, the suffixes refer to the three estimates of each run:
     unc   unconstrained, ignoring the error correlation
     unc2  unconstrained GLS                 -> FunSCOPE-U in the paper
     cons  constrained GLS                   -> FunSCOPE in the paper (run "Zero_Positive_&_Second_Positive")
-The paper reports IMSE(y) as MSE_avg_* / MSE_std_* of these reports.
+IMSE(y) is reported as IMSE_Y_avg_* / IMSE_Y_std_*, w.r.t. the pre-smoothed curves.
+MSE_* is the mean squared error of the transformed response; the paper's
+first version reported it as IMSE(y), which is IMSE_Y_* * T / p (FOS) or
+IMSE_Y_* * T / p**2 (FOF), with p = knots + degree.
 
 Writes in ./output, for each N and constraint setting:
     X_ScenarioWeibullFOSR_N_<N>_m_50_int_constraints_<name>_centered_True_knots_14.txt   metrics

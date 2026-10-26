@@ -25,7 +25,6 @@ from .building_blocks import (
     sqrtm_eig,
 )
 from .covariance import fpca_covariance
-from .utils import imse_simpson
 
 
 def FOSR_basis(X, t, Y, Beta_real=None, degree=3, knots=14, g=2000, centered=True, int_constraint=None, alpha_constraint=None, covariance_estimation="FPCA"):
@@ -169,17 +168,17 @@ def FOSR_basis(X, t, Y, Beta_real=None, degree=3, knots=14, g=2000, centered=Tru
         total_time = time.time() - start_time
 
         # -----------------------------------------------------------------
-        # 8. Errors: IMSE of beta(t) and IMSE of Y(t)
+        # 8. Errors: IMSE of beta(t) and IMSE of Y(t) w.r.t. the pre-smoothed
+        #    curves, (1/N) sum (1/T) int (Y_i - fitted_i)^2. The squared norm of
+        #    the transformed residual is that integral, so this is MSE_* * p / T
         # -----------------------------------------------------------------
         imse_approx_unc = imse_beta(t, Beta_real, Beta_est_unc)
         imse_approx_unc2 = imse_beta(t, Beta_real, Beta_est_unc2)
         imse_approx_cons = imse_beta(t, Beta_real, Beta_est_cons)
-
-        t_plot = knots_print[1:(knots + degree + 1)]
-        ystar_unc_resh = np.reshape(ystar_unc, (N, knots + degree))
-        imse_mse_unc = _imse_rows(t_plot, ystar_unc_resh, np.reshape(y_est_unc, (N, knots + degree)))
-        imse_mse_unc2 = _imse_rows(t_plot, ystar_unc_resh, np.reshape(y_est_unc2, (N, knots + degree)))
-        imse_mse_cons = _imse_rows(t_plot, ystar_unc_resh, np.reshape(y_est_cons, (N, knots + degree)))
+        T = max(t) - min(t)
+        imse_mse_unc = np.sum((ystar_unc - y_est_unc) ** 2) / (N * T)
+        imse_mse_unc2 = np.sum((ystar_unc - y_est_unc2) ** 2) / (N * T)
+        imse_mse_cons = np.sum((ystar_unc - y_est_cons) ** 2) / (N * T)
 
     return (
         FOSR_unc, FOSR_unc2, FOSR_cons,
@@ -192,8 +191,3 @@ def FOSR_basis(X, t, Y, Beta_real=None, degree=3, knots=14, g=2000, centered=Tru
         imse_mse_unc, imse_mse_unc2, imse_mse_cons,
         identity_used,
     )
-
-
-def _imse_rows(t, Y, Y_est):
-    """Average over rows of the IMSE between Y and Y_est."""
-    return np.mean([imse_simpson(t, Y[i, :], Y_est[i, :]) for i in range(np.shape(Y)[0])])

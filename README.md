@@ -270,7 +270,7 @@ Correspondence with the tables and figures of the paper:
 | FunSCOPE | `MSE_avg`, `IMSE_avg` of the constrained run (`Zero_Positive`) | `*_cons` entries of the constrained run |
 | FunSCOPE-U | `MSE_avg`, `IMSE_avg` of the `None` run | `*_unc2` entries |
 | Ghosal et al. | `*_Ghosal.txt` | `*_Ghosal.txt` (FOF only) |
-| $\mathrm{MSE}(\hat y)$ / $\mathrm{IMSE}(\hat y)$ | `MSE_avg` / `MSE_std` | `MSE_avg_*` / `MSE_std_*` |
+| $\mathrm{MSE}(\hat y)$ / $\mathrm{IMSE}(\hat y)$ | `MSE_avg` / `MSE_std` | `IMSE_Y_avg_*` / `IMSE_Y_std_*` (Ghosal et al.: `MSE_avg` / `MSE_std`) |
 | $\mathrm{IMSE}(\hat\beta)$ | `IMSE_avg` / `IMSE_std` | `IMSE_Beta_avg_*` / `IMSE_Beta_std_*` |
 | Time | `Total Time` | `Time` |
 | Figures (FunSCOPE / FunSCOPE-U) | `.png` of the constrained / `None` run | FOS: `.png`; FOF: `_FOFR_cons.png`, of the constrained / `None` run |

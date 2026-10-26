@@ -4,7 +4,8 @@ Step 4: compute the metrics and plots of the Ghosal et al. (2023) estimates (ste
 in the same way as for FunSCOPE. Responses are centered column-wise, as in step 3.
 
 Writes in ./output: X_ScenarioTanhFOFR_N_<N>_m_50_Ghosal.txt / .png / _beta0_Ghosal.png / .dat
-The paper reports IMSE(y) as MSE_avg / MSE_std of these reports.
+The paper reports IMSE(y) as MSE_avg / MSE_std of these reports (mean over the grid,
+w.r.t. the observed curves); IMSE_Y_* is the same quantity integrated with Simpson's rule.
 """
 
 import sys
