@@ -178,16 +178,6 @@ The functions return a dictionary:
 | `covariance_failed` | (FOS, FOF) `True` if the FPCA covariance estimation failed and the identity was used |
 | `model` | fitted optimization model |
 
-Typical computing times per fit are below 1 s for SOF, a few seconds for FOS
-and 10–20 s for FOF with $m=50$ and $N \le 100$.
-
-### Limitations
-
-* One covariate per model; FOF refers to the concurrent model only.
-* All curves must share the same observation grid.
-* There is no `predict` method for new observations yet.
-* FOS and FOF require R for the covariance estimation.
-
 ### Lower-level functions
 
 `fit_sof`, `fit_fos` and `fit_fof` call `SOFR_basis`, `FOSR_basis` and
@@ -278,11 +268,8 @@ Correspondence with the tables and figures of the paper:
 ### Reproducibility
 
 Steps 1 and 2 reproduce the data and the FunSCOPE results of the paper.
-Results on other platforms or solver versions may differ slightly: in our
-checks, the generated data agreed up to $10^{-9}$ and the estimates up to
-about $10^{-6}$ (relative) in SOF and FOF and about 1% per sample in FOS
-(where the FPCA covariance estimation in R is involved). Computing times
-depend on the machine. The results in the paper were obtained on a MacBook
+Results on other platforms or solver versions may differ slightly. Computing
+times depend on the machine. The results in the paper were obtained on a MacBook
 Pro (Apple M2 Pro, 16 GB RAM) with Python 3.12, `cpsplines` 0.3.0 and MOSEK
 11.0.13.
 
