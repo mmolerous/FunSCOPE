@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use FunSCOPE, please cite the paper below."
+title: "FunSCOPE: shape-constrained functional regression with P-splines and conic optimization"
+type: software
+license: MIT
+repository-code: "https://github.com/mmolerous/FunSCOPE"
+authors:
+  - family-names: "Durbán"
+    given-names: "María"
+  - family-names: "Guerrero"
+    given-names: "Vanesa"
+  - family-names: "Molero-Río"
+    given-names: "Cristina"
+preferred-citation:
+  type: article
+  title: "A conic optimization framework for shape-constrained functional regression analysis"
+  authors:
+    - family-names: "Durbán"
+      given-names: "María"
+    - family-names: "Guerrero"
+      given-names: "Vanesa"
+    - family-names: "Molero-Río"
+      given-names: "Cristina"
+  journal: "arXiv preprint arXiv:2611.20825"
+  year: 2026
+  doi: "10.48550/arXiv.2611.20825"
+  url: "https://arxiv.org/abs/2611.20825"

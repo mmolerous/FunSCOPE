@@ -21,7 +21,11 @@ least squares, with the error covariance estimated by FPCA
 
 This repository contains the code for the paper:
 
-> M. Durbán, V. Guerrero and C. Molero-Río. *A conic optimization framework for shape-constrained functional regression analysis.*
+> Durbán, M., Guerrero, V. & Molero-Río, C. (2026). A conic optimization
+> framework for shape-constrained functional regression analysis. *arXiv
+> preprint arXiv:2611.20825*. [https://arxiv.org/abs/2611.20825](https://arxiv.org/abs/2611.20825)
+
+If you use FunSCOPE, please cite it (see [Citation](#citation)).
 
 It can be used in two ways:
 
@@ -272,6 +276,30 @@ Results on other platforms or solver versions may differ slightly. Computing
 times depend on the machine. The results in the paper were obtained on a MacBook
 Pro (Apple M2 Pro, 16 GB RAM) with Python 3.12, `cpsplines` 0.3.0 and MOSEK
 11.0.13.
+
+---
+
+## Citation
+
+If you use FunSCOPE in your work, please cite:
+
+> Durbán, M., Guerrero, V. & Molero-Río, C. (2026). A conic optimization
+> framework for shape-constrained functional regression analysis. *arXiv
+> preprint arXiv:2611.20825*.
+
+```bibtex
+@article{durban2026conic,
+  title         = {A conic optimization framework for shape-constrained functional regression analysis},
+  author        = {Durb{\'a}n, Mar{\'i}a and Guerrero, Vanesa and Molero-R{\'i}o, Cristina},
+  journal       = {arXiv preprint arXiv:2611.20825},
+  year          = {2026},
+  eprint        = {2611.20825},
+  archivePrefix = {arXiv},
+  primaryClass  = {stat.ME},
+  doi           = {10.48550/arXiv.2611.20825},
+  url           = {https://arxiv.org/abs/2611.20825}
+}
+```
 
 ---
 
